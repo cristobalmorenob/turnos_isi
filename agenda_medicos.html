@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda Médicos</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F8FA;--surface:#fff;--border:#E4E7EC;--border-light:#F0F2F5;
+  --text:#1A1F2E;--muted:#6B7280;--faint:#9CA3AF;--accent:#2563EB;
+  --poli-bg:#EBF5FF;--poli-t:#1565C0;
+  --urg-bg:#FFF3E0;--urg-t:#E65100;
+  --hosp-bg:#E8F5E9;--hosp-t:#2E7D32;
+  --night-bg:#F3E5F5;--night-t:#6A1B9A;
+  --h24-bg:#FFF8E1;--h24-t:#F57F17;
+  --feri-bg:#FFF1F2;--feri-t:#9F1239;
+  --r:8px;--rs:5px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.4}
+
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.htitle{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.hsub{font-size:11px;color:var(--muted);margin-top:1px}
+.hsp{flex:1}
+.leg{display:flex;gap:14px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+.ctrl{background:var(--surface);border-bottom:1px solid var(--border);padding:11px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.cg{display:flex;align-items:center;gap:8px}
+.clbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+select{height:34px;padding:0 30px 0 10px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;transition:border-color .15s}
+select:focus{outline:none;border-color:var(--accent)}
+
+.main{padding:20px 24px 48px;max-width:1100px;margin:0 auto}
+.mhead{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.mtitle{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.mdoc{font-size:13px;color:var(--muted)}
+
+.cal{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+/* 7 cols: L M X J V S D */
+.cal-hdr{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:2px solid var(--border)}
+.chd{padding:9px 4px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-right:1px solid var(--border-light)}
+.chd:last-child{border-right:none}
+.chd.wk{color:var(--feri-t)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border-light)}
+.week:last-child{border-bottom:none}
+
+.cell{min-height:100px;padding:7px 6px 28px;border-right:1px solid var(--border-light);background:var(--surface);position:relative;transition:background .1s}
+.cell:last-child{border-right:none}
+.cell.wk{background:#FAFBFC}
+.cell.feri{background:var(--feri-bg)}
+.cell.empty{background:transparent;min-height:100px}
+.cell.today .dnum{background:var(--accent);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;margin-bottom:5px}
+.dnum{font-size:11px;font-weight:600;color:var(--faint);margin-bottom:4px;line-height:1.2}
+.cell.feri .dnum{color:var(--feri-t)}
+.flab{display:block;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--feri-t);margin-bottom:3px}
+
+.badge{display:block;padding:2px 5px;border-radius:3px;font-size:10px;font-weight:600;line-height:1.5;margin:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp{background:var(--poli-bg);color:var(--poli-t)}
+.bu{background:var(--urg-bg);color:var(--urg-t)}
+.bh{background:var(--hosp-bg);color:var(--hosp-t)}
+.bn{background:var(--night-bg);color:var(--night-t)}
+.b2{background:var(--h24-bg);color:var(--h24-t)}
+.bc{background:#F1F5F9;color:#475569}
+
+/* Add shift button */
+.btn-add{position:absolute;bottom:5px;right:5px;background:none;border:1px dashed #D1D5DB;color:var(--faint);border-radius:4px;padding:1px 6px;font-size:10px;cursor:pointer;display:none;transition:all .15s}
+.cell:hover .btn-add{display:block}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);background:var(--poli-bg)}
+
+/* Custom shift badges */
+.badge-custom{background:#F1F5F9;color:#334155;cursor:pointer}
+.badge-custom:hover{background:#E2E8F0}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r);padding:24px;width:340px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+.modal label{display:block;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;margin-top:14px}
+.modal select,.modal input{width:100%;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:var(--rs);font-size:13px;background:var(--bg);color:var(--text)}
+.modal input:focus,.modal select:focus{outline:none;border-color:var(--accent)}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.btn{height:34px;padding:0 16px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#1d4ed8}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-danger{background:#FEE2E2;color:#B91C1C;border:none}
+.btn-danger:hover{background:#FECACA}
+
+.sum{margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.scl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px}
+.scv{font-size:24px;font-weight:700;line-height:1}
+.scs{font-size:10px;color:var(--faint);margin-top:3px}
+
+.es{text-align:center;padding:70px 20px;color:var(--muted)}
+.es-icon{font-size:32px;margin-bottom:10px}
+
+@media(max-width:680px){
+  .hdr,.ctrl,.main{padding-left:14px;padding-right:14px}
+  .leg{display:none}
+  .cell{min-height:80px;padding:4px 3px 24px}
+  .badge{font-size:9px;padding:1px 3px}
+  .dnum{font-size:10px}
+  .mtitle{font-size:17px}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="htitle">Agenda Médica</div>
+    <div class="hsub">Hospital · 2026–2027</div>
+  </div>
+  <div class="hsp"></div>
+  <div class="leg">
+    <div class="li"><div class="dot" style="background:#90CAF9"></div>Policlínico</div>
+    <div class="li"><div class="dot" style="background:#FFAB91"></div>Urgencia</div>
+    <div class="li"><div class="dot" style="background:#A5D6A7"></div>Hospitalizados</div>
+    <div class="li"><div class="dot" style="background:#CE93D8"></div>Turno nocturno</div>
+    <div class="li"><div class="dot" style="background:#FFE082"></div>Turno 24h</div>
+  </div>
+</div>
+
+<div class="ctrl">
+  <div class="cg">
+    <span class="clbl">Médico</span>
+    <select id="doc" onchange="render()">
+      <option value="">— Seleccionar —</option>
+      <option>ARANEDA</option><option>CARVAJAL</option><option>CARDENAS</option>
+      <option>CORTES</option><option>DIAZ</option><option>GONZALEZ</option>
+      <option>HINOSTROZA</option><option>NOGUEIRA</option><option>PÉREZ</option>
+      <option>QUIROZ</option><option>TOLEDO</option>
+    </select>
+  </div>
+  <div class="cg">
+    <span class="clbl">Mes</span>
+    <select id="month" onchange="render()">
+      <option value="2026-01">Enero 2026</option>
+      <option value="2026-02">Febrero 2026</option>
+      <option value="2026-03">Marzo 2026</option>
+      <option value="2026-04">Abril 2026</option>
+      <option value="2026-05">Mayo 2026</option>
+      <option value="2026-06">Junio 2026</option>
+      <option value="2026-07">Julio 2026</option>
+      <option value="2026-08">Agosto 2026</option>
+      <option value="2026-09">Septiembre 2026</option>
+      <option value="2026-10">Octubre 2026</option>
+      <option value="2026-11">Noviembre 2026</option>
+      <option value="2026-12">Diciembre 2026</option>
+      <option value="2027-01">Enero 2027</option>
+    </select>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <div class="es"><div class="es-icon">📋</div>Selecciona un médico para ver su agenda</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <h3 id="modalTitle">Agregar turno</h3>
+    <div class="modal-sub" id="modalSub"></div>
+    <label>Tipo de turno</label>
+    <select id="modalType">
+      <option value="turno_noche_17">🌙 Turno nocturno 17→8</option>
+      <option value="turno_noche_16">🌙 Turno nocturno 16→8 (viernes)</option>
+      <option value="turno_24h">☀ Turno 24h</option>
+      <option value="urgencia">🚨 Urgencia</option>
+      <option value="hospitalizados">🛏 Hospitalizados</option>
+      <option value="policlinico">🏥 Policlínico</option>
+    </select>
+    <label>Nota opcional</label>
+    <input type="text" id="modalNote" placeholder="Ej: reemplazo, cambio de turno...">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveShift()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const S={"2026-01":{"1":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"2":{"turno_24h":["DIAZ","GONZALEZ","HINOSTROZA","CARVAJAL"],"turno_noche":[],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["PÉREZ","NOGUEIRA"],"dia_laboral":[]},"3":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"4":{"turno_24h":["GONZALEZ"],"turno_noche":["CARVAJAL"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["NOGUEIRA"],"dia_laboral":["DIAZ"]},"5":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA"],"dia_laboral":["DIAZ"]},"6":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["CARDENAS","HINOSTROZA"],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","GONZALEZ"],"dia_laboral":["PÉREZ"]},"7":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ"],"dia_laboral":["NOGUEIRA"]},"8":{"turno_24h":["CARVAJAL"],"turno_noche":["NOGUEIRA","GONZALEZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["DIAZ"]},"9":{"turno_24h":["NOGUEIRA","CARVAJAL"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"10":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"11":{"turno_24h":["CARDENAS"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"12":{"turno_24h":[],"turno_noche":["GONZALEZ","NOGUEIRA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","NOGUEIRA"],"dia_laboral":["HINOSTROZA"]},"13":{"turno_24h":[],"turno_noche":["NOGUEIRA","HINOSTROZA"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"14":{"turno_24h":[],"turno_noche":["NOGUEIRA","HINOSTROZA"],"urgencia":[],"hospitalizados":["NOGUEIRA","HINOSTROZA"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA"],"dia_laboral":["DIAZ"]},"15":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["NOGUEIRA","HINOSTROZA"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","HINOSTROZA"],"dia_laboral":["GONZALEZ","CORTES"]},"16":{"turno_24h":[],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA"],"dia_laboral":["DIAZ"]},"17":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"18":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"19":{"turno_24h":["CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["DIAZ","GONZALEZ"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"20":{"turno_24h":["CARVAJAL"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["HINOSTROZA","GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ"],"dia_laboral":["NOGUEIRA"]},"21":{"turno_24h":["CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["CORTES"]},"22":{"turno_24h":["CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["DIAZ","GONZALEZ"],"policlinico":["CORTES","DIAZ","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"23":{"turno_24h":["CARVAJAL"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","NOGUEIRA"],"dia_laboral":["DIAZ"]},"24":{"turno_24h":["CARDENAS"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"25":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"26":{"turno_24h":["PÉREZ","CARVAJAL"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["DIAZ","HINOSTROZA"],"dia_laboral":["NOGUEIRA"]},"27":{"turno_24h":["PÉREZ","CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["DIAZ"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA"],"dia_laboral":["GONZALEZ"]},"28":{"turno_24h":["PÉREZ","CARVAJAL"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["NOGUEIRA","GONZALEZ"],"policlinico":["CORTES","DIAZ","GONZALEZ"],"dia_laboral":["HINOSTROZA"]},"29":{"turno_24h":["PÉREZ","CARVAJAL"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["ARANEDA","GONZALEZ"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","HINOSTROZA","ARANEDA"],"dia_laboral":["DIAZ"]},"30":{"turno_24h":["PÉREZ","CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["ARANEDA","GONZALEZ"],"policlinico":["DIAZ","HINOSTROZA","ARANEDA"],"dia_laboral":["NOGUEIRA"]},"31":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}},"2026-02":{"1":{"turno_24h":["CARDENAS"],"turno_noche":["ARANEDA"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["NOGUEIRA"],"dia_laboral":["DIAZ"]},"2":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA","ARANEDA"],"dia_laboral":["DIAZ"]},"3":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","NOGUEIRA","ARANEDA"],"dia_laboral":["ARANEDA"]},"4":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","ARANEDA"],"dia_laboral":["NOGUEIRA"]},"5":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["DIAZ"],"policlinico":["CORTES","NOGUEIRA","ARANEDA"],"dia_laboral":["PÉREZ"]},"6":{"turno_24h":["HINOSTROZA","CARVAJAL"],"turno_noche":["ARANEDA","HINOSTROZA"],"urgencia":[],"hospitalizados":["DIAZ"],"policlinico":["CORTES","ARANEDA"],"dia_laboral":["PÉREZ"]},"7":{"turno_24h":["CARDENAS"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"8":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"9":{"turno_24h":["CARVAJAL"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["DIAZ","GONZALEZ","NOGUEIRA","HINOSTROZA","ARANEDA"],"dia_laboral":["PÉREZ"]},"10":{"turno_24h":["CARVAJAL"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","PÉREZ","GONZALEZ","HINOSTROZA","ARANEDA"],"dia_laboral":["NOGUEIRA"]},"11":{"turno_24h":["CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA","ARANEDA"],"dia_laboral":["HINOSTROZA"]},"12":{"turno_24h":["CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","GONZALEZ","HINOSTROZA"],"dia_laboral":["ARANEDA"]},"13":{"turno_24h":["NOGUEIRA","CARVAJAL"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","ARANEDA"],"dia_laboral":["DIAZ"]},"14":{"turno_24h":["ARANEDA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"15":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"16":{"turno_24h":["CARVAJAL"],"turno_noche":["PÉREZ","GONZALEZ"],"urgencia":[],"hospitalizados":["PÉREZ","GONZALEZ"],"policlinico":["CORTES","PÉREZ","HINOSTROZA","ARANEDA"],"dia_laboral":["NOGUEIRA"]},"17":{"turno_24h":["CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["ARANEDA"]},"18":{"turno_24h":["CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","PÉREZ","HINOSTROZA","ARANEDA"],"dia_laboral":["DIAZ"]},"19":{"turno_24h":["CARVAJAL"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","NOGUEIRA","ARANEDA"],"dia_laboral":["DIAZ"]},"20":{"turno_24h":["CARVAJAL"],"turno_noche":["ARANEDA"],"urgencia":[],"hospitalizados":["ARANEDA","CORTES"],"policlinico":["CORTES","DIAZ","NOGUEIRA","ARANEDA"],"dia_laboral":["HINOSTROZA"]},"21":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"22":{"turno_24h":["CORTES","GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"23":{"turno_24h":["CARVAJAL"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["ARANEDA"]},"24":{"turno_24h":["CARVAJAL"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","ARANEDA"],"dia_laboral":["HINOSTROZA"]},"25":{"turno_24h":["DIAZ","CARVAJAL"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA","ARANEDA"],"dia_laboral":["PÉREZ"]},"26":{"turno_24h":["CARVAJAL"],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","NOGUEIRA"],"dia_laboral":["ARANEDA"]},"27":{"turno_24h":["CARVAJAL"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","NOGUEIRA","ARANEDA"],"dia_laboral":["HINOSTROZA"]},"28":{"turno_24h":["ARANEDA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}},"2026-03":{"1":{"turno_24h":["CORTES"],"turno_noche":["ARANEDA"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["NOGUEIRA"],"dia_laboral":["DIAZ"]},"2":{"turno_24h":["DIAZ"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["PÉREZ","HINOSTROZA","ARANEDA","ARGEL"],"dia_laboral":["NOGUEIRA"]},"3":{"turno_24h":["DIAZ"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","NOGUEIRA"],"dia_laboral":["ARANEDA"]},"4":{"turno_24h":["DIAZ"],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA"],"dia_laboral":["ARANEDA"]},"5":{"turno_24h":["NOGUEIRA"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA"],"dia_laboral":["HINOSTROZA"]},"6":{"turno_24h":["NOGUEIRA"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["DIAZ"],"policlinico":["DIAZ","PÉREZ","HINOSTROZA","ARGEL"],"dia_laboral":["ARANEDA"]},"7":{"turno_24h":["ARANEDA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"8":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"9":{"turno_24h":["NOGUEIRA"],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ"],"dia_laboral":["ARANEDA"]},"10":{"turno_24h":["NOGUEIRA"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","HINOSTROZA"],"dia_laboral":["DIAZ"]},"11":{"turno_24h":["NOGUEIRA"],"turno_noche":["ARANEDA"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","HINOSTROZA","ARANEDA"],"dia_laboral":["DIAZ"]},"12":{"turno_24h":["NOGUEIRA"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","DIAZ","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"13":{"turno_24h":["NOGUEIRA"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","ARANEDA","ARGEL"],"dia_laboral":["HINOSTROZA"]},"14":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"15":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"16":{"turno_24h":["NOGUEIRA"],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA"],"dia_laboral":["HINOSTROZA"]},"17":{"turno_24h":["NOGUEIRA"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ"],"dia_laboral":["HINOSTROZA"]},"18":{"turno_24h":["NOGUEIRA"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","GONZALEZ","HINOSTROZA","ARGEL"],"dia_laboral":["PÉREZ"]},"19":{"turno_24h":["NOGUEIRA"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["HINOSTROZA"],"policlinico":["DIAZ","PÉREZ","HINOSTROZA"],"dia_laboral":["GONZALEZ"]},"20":{"turno_24h":["NOGUEIRA"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ"],"dia_laboral":["PÉREZ"]},"21":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"22":{"turno_24h":["CARDENAS"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"23":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA"],"dia_laboral":["NOGUEIRA"]},"24":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"25":{"turno_24h":[],"turno_noche":["CARDENAS"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","NOGUEIRA","HINOSTROZA","ARGEL"],"dia_laboral":["GONZALEZ"]},"26":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["DIAZ","GONZALEZ","NOGUEIRA","HINOSTROZA"],"dia_laboral":["PÉREZ"]},"27":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","PÉREZ","HINOSTROZA"],"dia_laboral":["DIAZ"]},"28":{"turno_24h":["GONZALEZ","CARDENAS"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"29":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"30":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ","GONZALEZ"],"dia_laboral":["HINOSTROZA"]},"31":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA","ARGEL"],"dia_laboral":["HINOSTROZA"]}},"2026-04":{"1":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["GONZALEZ"],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","GONZALEZ","NOGUEIRA","HINOSTROZA"]},"2":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["NOGUEIRA"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","HINOSTROZA"]},"3":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"4":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"5":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"6":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["DIAZ"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","TOLEDO"]},"7":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["DIAZ"],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","NOGUEIRA","TOLEDO"]},"8":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":["TOLEDO"],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA","ARGEL"]},"9":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","GONZALEZ","NOGUEIRA","HINOSTROZA"]},"10":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["GONZALEZ"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","NOGUEIRA","TOLEDO"]},"11":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"12":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"13":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["HINOSTROZA"],"hospitalizados":["NOGUEIRA"],"policlinico":["CORTES","DIAZ","GONZALEZ","NOGUEIRA","TOLEDO"]},"14":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":["CORTES","DIAZ","HINOSTROZA","TOLEDO"]},"15":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA"]},"16":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":["NOGUEIRA"],"policlinico":["NOGUEIRA","HINOSTROZA","TOLEDO","ARGEL"]},"17":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["NOGUEIRA"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","TOLEDO"]},"18":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"19":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"20":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","HINOSTROZA"]},"21":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["DIAZ"],"hospitalizados":["GONZALEZ"],"policlinico":["PÉREZ","GONZALEZ","NOGUEIRA","TOLEDO"]},"22":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["TOLEDO"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA","TOLEDO"]},"23":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA","HINOSTROZA"]},"24":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["HINOSTROZA"],"hospitalizados":["GONZALEZ","NOGUEIRA"],"policlinico":["PÉREZ","GONZALEZ","TOLEDO"]},"25":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"26":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"27":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["GONZALEZ"],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA","TOLEDO"]},"28":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["GONZALEZ"],"hospitalizados":[],"policlinico":["CORTES","DIAZ","NOGUEIRA","HINOSTROZA","TOLEDO"]},"29":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["HINOSTROZA"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","PÉREZ","GONZALEZ","NOGUEIRA"]},"30":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["HINOSTROZA"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","NOGUEIRA","TOLEDO"]}},"2026-05":{"1":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"2":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"3":{"turno_24h":[],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"7":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","NOGUEIRA","HINOSTROZA"]},"4":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["TOLEDO"],"policlinico":["CORTES","DIAZ","GONZALEZ","HINOSTROZA","TOLEDO"]},"5":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["GONZALEZ"],"hospitalizados":["HINOSTROZA"],"policlinico":["CORTES","NOGUEIRA","HINOSTROZA","TOLEDO"]},"6":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["HINOSTROZA"],"hospitalizados":["TOLEDO"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","NOGUEIRA","TOLEDO"]},"8":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["PÉREZ"],"hospitalizados":["GONZALEZ"],"policlinico":["DIAZ","GONZALEZ","NOGUEIRA","HINOSTROZA","TOLEDO"]},"9":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"10":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"11":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["DIAZ"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","HINOSTROZA"]},"12":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["DIAZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","HINOSTROZA","TOLEDO"]},"13":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["PÉREZ"],"hospitalizados":["TOLEDO"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","HINOSTROZA","TOLEDO"]},"14":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["HINOSTROZA"],"hospitalizados":["TOLEDO"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA","TOLEDO"]},"15":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ","GONZALEZ","HINOSTROZA"]},"16":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"17":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"18":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ","PÉREZ","GONZALEZ","HINOSTROZA","TOLEDO"]},"19":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["HINOSTROZA"],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA","TOLEDO"]},"20":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["CORTES"],"hospitalizados":["HINOSTROZA"],"policlinico":["PÉREZ","NOGUEIRA","HINOSTROZA","TOLEDO"]},"21":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"22":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["TOLEDO"],"hospitalizados":["DIAZ"],"policlinico":["CORTES","DIAZ","PÉREZ"]},"23":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"24":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"25":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["PÉREZ"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","TOLEDO"]},"26":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["HINOSTROZA"],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA","TOLEDO"]},"27":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["TOLEDO"],"hospitalizados":["PÉREZ"],"policlinico":["CORTES","DIAZ","PÉREZ","GONZALEZ","HINOSTROZA"]},"28":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["TOLEDO"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","PÉREZ","GONZALEZ","NOGUEIRA"]},"29":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["NOGUEIRA"],"hospitalizados":["GONZALEZ"],"policlinico":["CORTES","DIAZ","HINOSTROZA","TOLEDO"]},"30":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"31":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]}},"2026-06":{"1":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["TOLEDO"],"hospitalizados":["DIAZ"],"policlinico":["CORTES","DIAZ","PÉREZ","NOGUEIRA"]},"2":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["PÉREZ"],"hospitalizados":["TOLEDO"],"policlinico":["CORTES","GONZALEZ","NOGUEIRA","TOLEDO"]},"3":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["TOLEDO"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ"]},"4":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["NOGUEIRA"],"hospitalizados":["TOLEDO"],"policlinico":[]},"5":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":["GONZALEZ"],"hospitalizados":["DIAZ"],"policlinico":["CORTES","DIAZ","NOGUEIRA"]},"6":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"7":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"8":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":["PÉREZ"],"hospitalizados":["GONZALEZ"],"policlinico":[]},"9":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["TOLEDO"],"hospitalizados":["NOGUEIRA"],"policlinico":[]},"10":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["NOGUEIRA"],"hospitalizados":["HINOSTROZA"],"policlinico":["GONZALEZ"]},"11":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["TOLEDO"],"hospitalizados":["PÉREZ"],"policlinico":["GONZALEZ"]},"12":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":["DIAZ"],"hospitalizados":["TOLEDO"],"policlinico":["DIAZ"]},"13":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"14":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"15":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":["DIAZ"],"hospitalizados":["GONZALEZ"],"policlinico":[]},"16":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":["HINOSTROZA"],"hospitalizados":["PÉREZ"],"policlinico":["DIAZ"]},"17":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["DIAZ"],"hospitalizados":["NOGUEIRA"],"policlinico":[]},"18":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["NOGUEIRA"],"hospitalizados":["HINOSTROZA"],"policlinico":[]},"19":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["HINOSTROZA"],"hospitalizados":["GONZALEZ"],"policlinico":[]},"20":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"21":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"22":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":["TOLEDO"],"hospitalizados":["DIAZ"],"policlinico":[]},"23":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["HINOSTROZA"],"hospitalizados":["GONZALEZ"],"policlinico":[]},"24":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":["TOLEDO"],"hospitalizados":["DIAZ"],"policlinico":[]},"25":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":["DIAZ"],"hospitalizados":["NOGUEIRA"],"policlinico":[]},"26":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":["PÉREZ"],"hospitalizados":["NOGUEIRA"],"policlinico":[]},"27":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"28":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"29":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"30":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":["HINOSTROZA"],"hospitalizados":["DIAZ"],"policlinico":[]}},"2026-07":{"1":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"2":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"3":{"turno_24h":[],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"4":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"5":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"6":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"7":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"8":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"9":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"10":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"11":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"12":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"13":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"14":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"15":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"16":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"17":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"18":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"19":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"20":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"21":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"22":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"23":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"24":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"25":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"26":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"27":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"28":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"29":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"30":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"31":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]}},"2026-08":{"1":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"2":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"3":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"4":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"5":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"6":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"7":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"8":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"9":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"10":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"11":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"12":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"13":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"14":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"15":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"16":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"17":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"18":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"19":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"20":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"21":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"22":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"23":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"24":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"25":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"26":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":["NOGUEIRA"]},"27":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"28":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"29":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"30":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"31":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]}},"2026-09":{"1":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"2":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"3":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"4":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"5":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"6":{"turno_24h":["DIAZ","HINOSTROZA"],"turno_noche":["GONZALEZ"],"urgencia":["TOLEDO"],"hospitalizados":["QUIROZ"],"policlinico":["HINOSTROZA"]},"7":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"8":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"9":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"10":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"11":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"12":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"13":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"14":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"15":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"16":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"17":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"18":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"19":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"20":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"21":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"22":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"23":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"24":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"25":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"26":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"27":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[]},"28":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"29":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[]},"30":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[]}},"2026-10":{"5":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"6":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"7":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"8":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"9":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"10":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"11":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"12":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"13":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"14":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"15":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"16":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"17":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"18":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"19":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"20":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"21":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"22":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"23":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"24":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"25":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"26":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"27":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"28":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"29":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"30":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"31":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}},"2026-11":{"2":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"3":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"4":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"5":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"6":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"7":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"8":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"9":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"10":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"11":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":["NOGUEIRA"],"dia_laboral":[]},"12":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"13":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"14":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"15":{"turno_24h":["QUIROZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"16":{"turno_24h":[],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"17":{"turno_24h":[],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"18":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"19":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"20":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"21":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"22":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"23":{"turno_24h":["HINOSTROZA"],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"24":{"turno_24h":["HINOSTROZA"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"25":{"turno_24h":["HINOSTROZA"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"26":{"turno_24h":["HINOSTROZA"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"27":{"turno_24h":["HINOSTROZA"],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"28":{"turno_24h":["CORTES"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"29":{"turno_24h":["DIAZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"30":{"turno_24h":["HINOSTROZA"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}},"2026-12":{"1":{"turno_24h":["HINOSTROZA"],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"2":{"turno_24h":["HINOSTROZA"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"3":{"turno_24h":["HINOSTROZA"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"4":{"turno_24h":["HINOSTROZA"],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"5":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"6":{"turno_24h":["CORTES"],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":["GONZALEZ"],"policlinico":["NOGUEIRA"],"dia_laboral":["DIAZ"]},"7":{"turno_24h":["HINOSTROZA"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"8":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"9":{"turno_24h":["HINOSTROZA"],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"10":{"turno_24h":["HINOSTROZA"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"11":{"turno_24h":["HINOSTROZA"],"turno_noche":["HINOSTROZA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"12":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"13":{"turno_24h":["TOLEDO"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"14":{"turno_24h":["HINOSTROZA"],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"15":{"turno_24h":["HINOSTROZA"],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"16":{"turno_24h":["HINOSTROZA"],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"17":{"turno_24h":["HINOSTROZA"],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"18":{"turno_24h":["HINOSTROZA"],"turno_noche":["NOGUEIRA"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"19":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"20":{"turno_24h":["PÉREZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"21":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"22":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"23":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"24":{"turno_24h":[],"turno_noche":["GONZALEZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"25":{"turno_24h":[],"turno_noche":["QUIROZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"26":{"turno_24h":["NOGUEIRA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"27":{"turno_24h":["HINOSTROZA"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"28":{"turno_24h":[],"turno_noche":["PÉREZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"29":{"turno_24h":[],"turno_noche":["TOLEDO"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"30":{"turno_24h":[],"turno_noche":["CORTES"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]},"31":{"turno_24h":[],"turno_noche":["DIAZ"],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}},"2027-01":{"1":{"turno_24h":["GONZALEZ"],"turno_noche":[],"urgencia":[],"hospitalizados":[],"policlinico":[],"dia_laboral":[]}}};
+
+// Custom shifts added by user: { "DOC|YYYY-MM|D": [{type, note}] }
+let CUSTOM = JSON.parse(localStorage.getItem('custom_shifts') || '{}');
+
+const FERIADOS=new Set(['2026-01-01','2026-04-02','2026-04-03','2026-05-01','2026-05-21',
+  '2026-06-29','2026-07-16','2026-08-15','2026-09-18','2026-09-19',
+  '2026-10-12','2026-10-31','2026-11-01','2026-12-08','2026-12-25','2027-01-01']);
+
+const MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+// Week starts Monday: Mon=0 ... Sun=6
+const DN=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+const pad=n=>String(n).padStart(2,'0');
+const feriado=(y,m,d)=>FERIADOS.has(`${y}-${pad(m)}-${pad(d)}`);
+// JS getDay(): 0=Sun,1=Mon...6=Sat → convert to Mon-start: Mon=0...Sun=6
+const dowMon=(y,m,d)=>(new Date(y,m-1,d).getDay()+6)%7;
+const isWeekend=(y,m,d)=>dowMon(y,m,d)>=5;
+const isFriday=(y,m,d)=>dowMon(y,m,d)===4;
+const has=(arr,doc)=>Array.isArray(arr)&&arr.includes(doc);
+
+let modalDay=null, modalYm=null, modalDoc=null;
+
+function openModal(doc, ym, d){
+  modalDoc=doc; modalYm=ym; modalDay=d;
+  const [ys,ms]=ym.split('-');
+  const dt=new Date(+ys,+ms-1,d);
+  const dnames=['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  document.getElementById('modalTitle').textContent=`Agregar turno — ${d} de ${MN[+ms-1]}`;
+  document.getElementById('modalSub').textContent=`Dr. ${doc.charAt(0)+doc.slice(1).toLowerCase()} · ${dnames[dowMon(+ys,+ms,d)]}`;
+  document.getElementById('modalNote').value='';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e){
+  if(e && e.target!==document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function saveShift(){
+  const type=document.getElementById('modalType').value;
+  const note=document.getElementById('modalNote').value.trim();
+  const key=`${modalDoc}|${modalYm}|${modalDay}`;
+  if(!CUSTOM[key]) CUSTOM[key]=[];
+  CUSTOM[key].push({type,note});
+  localStorage.setItem('custom_shifts',JSON.stringify(CUSTOM));
+  document.getElementById('modalOverlay').classList.remove('open');
+  render();
+}
+
+function removeCustom(doc,ym,d,idx){
+  const key=`${doc}|${ym}|${d}`;
+  if(CUSTOM[key]){
+    CUSTOM[key].splice(idx,1);
+    if(!CUSTOM[key].length) delete CUSTOM[key];
+    localStorage.setItem('custom_shifts',JSON.stringify(CUSTOM));
+    render();
+  }
+}
+
+const TYPE_LABELS={
+  turno_noche_17:'🌙 Turno 17→8',
+  turno_noche_16:'🌙 Turno 16→8',
+  turno_24h:'☀ Turno 24h',
+  urgencia:'🚨 Urgencia',
+  hospitalizados:'🛏 Hospitalizados',
+  policlinico:'🏥 Policlínico'
+};
+const TYPE_CLASS={
+  turno_noche_17:'bn',turno_noche_16:'bn',
+  turno_24h:'b2',urgencia:'bu',
+  hospitalizados:'bh',policlinico:'bp'
+};
+
+function buildCell(doc,y,m,d){
+  const ym=`${y}-${pad(m)}`;
+  const md=S[ym]||{};
+  const info=md[String(d)]||md[d]||null;
+  const isWk=isWeekend(y,m,d);
+  const isFeri=feriado(y,m,d);
+  const isFri=isFriday(y,m,d);
+  const now=new Date();
+  const isToday=now.getFullYear()===y&&now.getMonth()+1===m&&now.getDate()===d;
+  const customKey=`${doc}|${ym}|${d}`;
+  const customs=CUSTOM[customKey]||[];
+
+  let cls='cell';
+  if(isWk) cls+=' wk';
+  if(isFeri) cls+=' feri';
+  if(isToday) cls+=' today';
+
+  let h=`<div class="${cls}" onclick="openModal('${doc}','${ym}',${d})">`;
+  h+=`<div class="dnum">${d}</div>`;
+  if(isFeri) h+=`<span class="flab">Feriado</span>`;
+
+  const is24h   = info && has(info.turno_24h, doc);
+  const isNight = info && has(info.turno_noche, doc);
+  const isUrg   = info && has(info.urgencia, doc);
+  const isHosp  = info && has(info.hospitalizados, doc);
+  const isPoli  = info && has(info.policlinico, doc);
+  const isDia   = info && has(info.dia_laboral, doc);
+  const isWorkingDay = !isWk && !isFeri;
+
+  // --- TURNO 24h ---
+  if(is24h){
+    h+=`<span class="badge b2">☀ Turno 24h</span>`;
+  }
+
+  // --- TURNO NOCTURNO (sale de este día) ---
+  if(isNight){
+    h+=`<span class="badge bn">${isFri?'🌙 Turno 16→8':'🌙 Turno 17→8'}</span>`;
+  }
+
+  // --- URGENCIA diurna ---
+  if(isUrg){
+    h+=`<span class="badge bu">🚨 Urgencia</span>`;
+  }
+
+  // --- HOSPITALIZADOS (mañana) ---
+  if(isHosp){
+    h+=`<span class="badge bh">🛏 Hospitalizados</span>`;
+  }
+
+  // --- POLICLÍNICO ---
+  // Shown if: explicitly in policlinico list, OR it's a working day and not in urgencia/24h/hosp only
+  // Rule: working day + NOT in turno_24h + NOT in urgencia → policlínico (puede ser además de hosp)
+  const showPoli = isWorkingDay && !is24h && (
+    isPoli ||                           // explicit in médico row
+    isDia && !isUrg && !isHosp ||       // old-format month, dia_laboral default
+    (!isUrg && !isHosp && !isPoli && !isDia)  // not assigned to anything → default policlínico
+  );
+
+  // Also show poli if in hosp (mañana hosp, tarde poli) unless explicitly in urgencia
+  const showPoliWithHosp = isWorkingDay && !is24h && isHosp && !isUrg;
+
+  if(showPoli || showPoliWithHosp){
+    // Only add poli badge once, not if already shown via showPoli AND showPoliWithHosp
+    if(showPoliWithHosp && !showPoli){
+      h+=`<span class="badge bp">🏥 Policlínico</span>`;
+    } else if(showPoli && !isHosp){
+      h+=`<span class="badge bp">🏥 Policlínico</span>`;
+    } else if(showPoli && isHosp){
+      h+=`<span class="badge bp">🏥 Policlínico</span>`;
+    }
+  }
+
+  // --- CUSTOM SHIFTS ---
+  customs.forEach((c,i)=>{
+    const lbl=TYPE_LABELS[c.type]||c.type;
+    const cls2=TYPE_CLASS[c.type]||'bc';
+    const note=c.note?` · ${c.note}`:'';
+    h+=`<span class="badge ${cls2} badge-custom" title="Click para eliminar" onclick="event.stopPropagation();removeCustom('${doc}','${ym}',${d},${i})">${lbl}${note} ✕</span>`;
+  });
+
+  // Add button
+  h+=`<button class="btn-add" onclick="event.stopPropagation();openModal('${doc}','${ym}',${d})">+ turno</button>`;
+
+  h+='</div>';
+  return h;
+}
+
+function render(){
+  const doc=document.getElementById('doc').value;
+  const ymv=document.getElementById('month').value;
+  const main=document.getElementById('main');
+
+  if(!doc){
+    main.innerHTML='<div class="es"><div class="es-icon">📋</div>Selecciona un médico para ver su agenda</div>';
+    return;
+  }
+
+  const [ys,ms]=ymv.split('-');
+  const y=+ys, m=+ms;
+  const dim=new Date(y,m,0).getDate();
+  // Day of week of 1st (Mon-start: Mon=0...Sun=6)
+  const fd=dowMon(y,m,1);
+  const dname=doc.charAt(0)+doc.slice(1).toLowerCase();
+
+  // Stats
+  let nPoli=0,nUrg=0,nHosp=0,nTurno=0;
+  const mdata=S[ymv]||{};
+  for(let d=1;d<=dim;d++){
+    const info=mdata[String(d)]||mdata[d];
+    const isWk=isWeekend(y,m,d);
+    const isFeri=feriado(y,m,d);
+    if(!info) { if(!isWk&&!isFeri) nPoli++; continue; }
+    if(has(info.turno_24h,doc)||has(info.turno_noche,doc)) nTurno++;
+    if(has(info.urgencia,doc)) nUrg++;
+    else if(has(info.hospitalizados,doc)) { nHosp++; if(!isWk&&!isFeri&&!has(info.turno_24h,doc)) nPoli++; }
+    else if(!isWk&&!isFeri&&!has(info.turno_24h,doc)) nPoli++;
+  }
+
+  let h=`<div class="mhead"><div class="mtitle">${MN[m-1]} ${y}</div><div class="mdoc">Dr. ${dname}</div></div>`;
+  h+=`<div class="cal"><div class="cal-hdr">${DN.map((n,i)=>`<div class="chd${i>=5?' wk':''}">${n}</div>`).join('')}</div>`;
+
+  let cells=[];
+  for(let i=0;i<fd;i++) cells.push('<div class="cell empty"></div>');
+  for(let d=1;d<=dim;d++){
+    cells.push(buildCell(doc,y,m,d));
+    if(cells.length===7){
+      h+=`<div class="week">${cells.join('')}</div>`;
+      cells=[];
+    }
+  }
+  if(cells.length){
+    while(cells.length<7) cells.push('<div class="cell empty"></div>');
+    h+=`<div class="week">${cells.join('')}</div>`;
+  }
+  h+='</div>';
+
+  h+=`<div class="sum">
+    <div class="sc"><div class="scl">Policlínico</div><div class="scv" style="color:var(--poli-t)">${nPoli}</div><div class="scs">días en consulta</div></div>
+    <div class="sc"><div class="scl">Urgencia</div><div class="scv" style="color:var(--urg-t)">${nUrg}</div><div class="scs">días asignado</div></div>
+    <div class="sc"><div class="scl">Hospitalizados</div><div class="scv" style="color:var(--hosp-t)">${nHosp}</div><div class="scs">días mañana</div></div>
+    <div class="sc"><div class="scl">Turnos</div><div class="scv" style="color:var(--night-t)">${nTurno}</div><div class="scs">nocturnos y 24h</div></div>
+  </div>`;
+
+  main.innerHTML=h;
+}
+
+document.getElementById('month').value='2026-06';
+document.getElementById('doc').value='TOLEDO';
+render();
+</script>
+</body>
+</html>
